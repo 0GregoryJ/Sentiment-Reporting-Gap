@@ -1,8 +1,7 @@
 streamlit
-pandas
 plotly
-requests
-numpy
-requests
-serpapi
+pandas
 duckdb
+requests
+python-dotenv
+google-search-results 
