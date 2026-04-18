@@ -1,0 +1,31 @@
+import duckdb
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parents[1]
+DB_PATH = BASE_DIR / "data" / "database" / "analytics.duckdb"
+
+SQL_FILES = [
+    BASE_DIR / "sql" / "staging" / "stg_fred.sql",
+    BASE_DIR / "sql" / "staging" / "stg_bls.sql",
+    BASE_DIR / "sql" / "staging" / "stg_serp.sql",
+    BASE_DIR / "sql" / "marts" / "dim_date.sql",
+    BASE_DIR / "sql" / "marts" / "dim_series.sql",
+    BASE_DIR / "sql" / "marts" / "fact_observations.sql",
+    BASE_DIR / "sql" / "analytics" / "main_features.sql",
+]
+
+
+def run_pipeline():
+    con = duckdb.connect(DB_PATH)
+
+    for sql_file in SQL_FILES:
+        print(f"Running {sql_file}...")
+        sql_text = Path(sql_file).read_text()
+        con.execute(sql_text)
+
+    con.close()
+    print("Done.")
+
+
+if __name__ == "__main__":
+    run_pipeline()
