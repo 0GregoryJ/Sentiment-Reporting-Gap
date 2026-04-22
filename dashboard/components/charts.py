@@ -20,6 +20,9 @@ def generate_main_chart(filtered_data, data_selection, range_selection):
     #remove axis labels
     main_chart.update_layout(xaxis_title=None, yaxis_title=None)
 
+    #y-axis scale
+    main_chart.update_yaxes(range=[-100,100])
+
     st.plotly_chart(main_chart, use_container_width=True)
 
 def generate_mini_chart(filtered_data, keyword):
@@ -35,7 +38,11 @@ def generate_mini_chart(filtered_data, keyword):
         "CES0000000001": ["Payroll Employment", "Thousands of Paid Workers"],
         "unemployment_benefits": ['"Unemployment Benefits"', "Google Trends Units"],
         "second_job": ['"Second Job"', "Google Trends Units"],
-        "layoffs": ['"Layoffs"', "Google Trends Units"]
+        "layoffs": ['"Layoffs"', "Google Trends Units"],
+        "credit_card_application": ['"Credit Card Application"', "Google Trends Units"],
+        "kitchen_remodel": ['"Kitchen Remodel"', "Google Trends Units"],
+        "flight_deals": ['"Flights Deals"', "Google Trends Units"],
+        "spending_reported_sentiment": ["FRED Personal Comsumption (Standardized)", ""]
     }
     mini_chart.update_layout(title=title_and_label_dict[keyword][0])
     
@@ -47,5 +54,8 @@ def generate_mini_chart(filtered_data, keyword):
 
     #connectgaps
     mini_chart.update_traces(connectgaps = True)
+
+    #y-axis scale
+    mini_chart.update_yaxes(range=[0,100])
 
     st.plotly_chart(mini_chart, use_container_width=True)

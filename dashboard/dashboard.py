@@ -93,7 +93,7 @@ else:
     #selection dictionary
     selection_dict = {
             "Labor Market Stress": ["labor", ["LNS14000000", "CES0500000002", "CES0000000001", "unemployment_benefits", "second_job", "layoffs"]],
-            "Consumer Spending": ["spending"],
+            "Consumer Spending": ["spending", ["spending_reported_sentiment", "kitchen_remodel", "credit_card_application", "flight_deals"]],
             "6 months": datetime.today() - timedelta(days=180),
             "1 year": datetime.today() - timedelta(days=365),
             "5 years": datetime.today() - timedelta(days=1825),
@@ -148,23 +148,35 @@ else:
     st.subheader("Individual Search Frequencies")
     st.markdown('<h6 style="font-weight: 100">Visualize some of the individual search frequencies that compose the search sentiment data in the chart above.</h6><hr style="margin-top:5px; margin-bottom:15px">', unsafe_allow_html=True)
     IScol1,IScol2,IScol3 = st.columns([1,1,1])
-    with IScol1:
-            generate_mini_chart(filtered_data, selection_dict[data_selection][1][3])
-    with IScol2:
-            generate_mini_chart(filtered_data, selection_dict[data_selection][1][4])
-    with IScol3:
-            generate_mini_chart(filtered_data, selection_dict[data_selection][1][5])
+    if data_selection == "Labor Market Stress":
+        with IScol1:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][3])
+        with IScol2:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][4])
+        with IScol3:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][5])
+    elif data_selection == "Consumer Spending":
+        with IScol1:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][1])
+        with IScol2:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][2])
+        with IScol3:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][3])
     
     #individual reported data points
     st.subheader("Individual Reported Data Series")
     st.markdown('<h6 style="font-weight: 100">Visualize some of the individual reported data series that constitute the reported data composite in the chart above.</h6><hr style="margin-top:5px; margin-bottom:15px">', unsafe_allow_html=True)
     IRcol1,IRcol2,IRcol3 = st.columns([1,1,1])
-    with IRcol1:
-            generate_mini_chart(filtered_data, selection_dict[data_selection][1][0])
-    with IRcol2:
-            generate_mini_chart(filtered_data, selection_dict[data_selection][1][1])
-    with IRcol3:
-            generate_mini_chart(filtered_data, selection_dict[data_selection][1][2])
+    if data_selection == "Labor Market Stress":
+        IRcol1,IRcol2,IRcol3 = st.columns([1,1,1])
+        with IRcol1:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][0])
+        with IRcol2:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][1])
+        with IRcol3:
+                generate_mini_chart(filtered_data, selection_dict[data_selection][1][2])
+    elif data_selection == "Consumer Spending":
+        generate_mini_chart(filtered_data, selection_dict[data_selection][1][0])
     #insights
     st.subheader("Insights")
     st.markdown("""<h6 style="font-weight: 100">Insights about what today's gap means, generated per session, powered by Llama 3. (In construction!)</h6><hr style="margin-top:5px; margin-bottom:15px">""", unsafe_allow_html=True)
