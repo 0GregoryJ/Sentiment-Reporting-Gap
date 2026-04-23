@@ -1,166 +1,103 @@
-# Economic Sentiment vs. Official Data Dashboard
+# Sentiment-Reporting-Gap
 
-## Overview
+Measure the gap between public economic sentiment (Google search behavior) and official macroeconomic reporting (FRED, BLS) with a Python ETL pipeline, DuckDB + SQL modeling workflow, and Streamlit dashboard.
 
-This dashboard visualizes the relationship between **public economic sentiment** (measured through Google search behavior) and **official macroeconomic data** (BLS, BEA, FRED).
+The analytics layer applies z-score normalization and CDF-approximated sigmoid scaling to convert heterogeneous time series into comparable 0-100 sentiment indices and gap metrics, refreshed biweekly via Airflow.
 
-Its core purpose is to highlight **gaps between how people feel about the economy and what official statistics report**.
+## Project Layout
 
-Rather than focusing only on economic levels (e.g., unemployment rate), the dashboard measures:
+- `src/extract/`: API extraction scripts (FRED, BLS, SerpAPI/Google Trends).
+- `sql/staging/`: raw-to-staging model SQL.
+- `sql/marts/`: dimensional and fact model SQL.
+- `sql/analytics/`: final feature models used by the dashboard.
+- `scripts/run_local_pipeline`: runs all SQL models in order against DuckDB.
+- `dashboard/`: Streamlit app, query SQL, and chart components.
+- `data/`: raw parquet outputs and DuckDB file (`data/database/analytics.duckdb`).
+- `airflow/dags/`: Airflow DAG for scheduled pipeline runs and data sync/push.
 
-* **Search-based stress signals**
-* **Fundamental economic conditions**
-* The **divergence between the two**
+## Data Flow
 
-This allows users to identify periods where:
+1. Extraction scripts write raw API data to `data/raw/*/*.parquet`.
+2. SQL pipeline builds staged, mart, and analytics tables in `analytics.duckdb`.
+3. Dashboard queries analytics features from DuckDB.
+4. Airflow DAG runs the same pipeline every 2 weeks and pushes refreshed `data/` changes.
 
-* Public anxiety exceeds economic fundamentals
-* Official data weakens before public concern rises
-* Sentiment and fundamentals move in opposite directions
+## Requirements
 
----
+- Python 3.9+ recommended
+- `pip`
+- Git configured for this repository
+- API keys in `.env` at repo root:
+  - `FRED_API_KEY`
+  - `SERP_API_KEY`
 
-## What the Dashboard Measures
+Install dependencies:
 
-### 1. Search-Based Stress Indices
-
-Google search terms related to economic stress (e.g., layoffs, unemployment benefits, credit card minimum payments) are:
-
-1. Standardized over time (z-score)
-2. Averaged into thematic composites (e.g., Labor Stress)
-
-These indices measure:
-
-> Relative public anxiety compared to historical norms
-
----
-
-### 2. Official Economic Condition Indices
-
-BLS series are transformed into cyclical measures before aggregation:
-
-| Series                  | Transformation        | Direction         |
-| ----------------------- | --------------------- | ----------------- |
-| Payroll Employment      | MoM % change          | Higher = stronger |
-| Average Hourly Earnings | YoY % change          | Higher = stronger |
-| Weekly Hours            | MoM change            | Higher = stronger |
-| Unemployment Rate       | Inverted level        | Higher = stronger |
-| Unemployment Level      | Inverted MoM % change | Higher = stronger |
-
-After transformation:
-
-1. Each series is standardized (z-score)
-2. The standardized series are averaged
-3. The result is inverted to create a **Labor Stress Index**
-
-This produces a clean, comparable stress measure aligned with sentiment data.
-
----
-
-### 3. Sentiment–Fundamentals Gap
-
-The dashboard computes:
-
-```
-Stress Gap = Search Stress – Official Stress
+```bash
+pip install -r requirements.txt
 ```
 
-Interpretation:
+## Local Run (Manual)
 
-* **Positive Gap** → Public anxiety exceeds fundamentals
-* **Negative Gap** → Fundamentals worse than public perception
-* **Zero** → Alignment between sentiment and data
+Run extraction:
 
-This gap is often more informative than either series alone.
-
----
-
-## Technical Architecture
-
-### Data Sources
-
-* **FRED API** (BLS, BEA series)
-* **Google search data**
-* Monthly frequency
-
-### Data Structure
-
-Master dataset stored in long format:
-
-```
-date | query | value
+```bash
+python src/extract/extract_FRED_data.py
+python src/extract/extract_BLS_data.py
+python src/extract/extract_SERP_data.py
 ```
 
-Derived columns:
+Run SQL pipeline:
 
-* Transformed cyclical values
-* Z-scores (standardized over time)
-* Composite indices
-* Stress gap measures
+```bash
+python scripts/run_local_pipeline
+```
 
-### Transformation Pipeline
+Run dashboard:
 
-1. Convert values to numeric
-2. Sort by series and date
-3. Apply series-specific transformation
-4. Standardize within series (z-score)
-5. Aggregate across series by date
-6. Align direction (stress-based interpretation)
+```bash
+streamlit run dashboard/dashboard.py
+```
 
-### Visualization
+## Airflow Orchestration
 
-* Built using Plotly
-* Dynamic time-range filtering (2W, 1M, 1Y, 5Y)
-* Legend and layout customized for macro-style presentation
-* Rendered in Streamlit
+Main DAG:
 
----
+- `airflow/dags/sentiment_reporting_gap_dag.py`
+- DAG ID: `sentiment_reporting_gap_biweekly`
+- Schedule: every 2 weeks
+- `catchup=False`
 
-## Why This Dashboard Is Valuable
+The DAG runs:
 
-Traditional dashboards show economic levels.
+1. `extract_FRED_data.py`
+2. `extract_BLS_data.py`
+3. `extract_SERP_data.py`
+4. `scripts/run_local_pipeline`
+5. `rsync` local data source into repo `data/`
+6. `git add data && git commit && git push origin main` (if changes exist)
 
-This dashboard shows:
+Supported environment overrides:
 
-* **Relative stress**
-* **Perception vs reality**
-* **Divergence signals**
+- `LOCAL_DATA_SOURCE` (default: `<repo>/data`)
+- `PIPELINE_PYTHON_BIN` (default: `python`)
+- `PIPELINE_GIT_SSH_KEY_PATH` (default: `~/.ssh/airflow_github`)
 
-These divergences can:
+## Airflow UI (Current Local Setup)
 
-* Anticipate turning points
-* Reveal fragility beneath strong headline data
-* Highlight media amplification cycles
-* Provide macroeconomic context beyond raw statistics
+If you are using the local setup created for this repo:
 
----
+- URL: [http://localhost:8080](http://localhost:8080)
+- Username: `admin`
+- Password: `admin`
 
-## Running the Project
+Services are started from project-local resources:
 
-1. Install dependencies:
+- Virtualenv: `.venv-airflow/`
+- Airflow home: `.airflow-home/`
 
-   ```
-   pip install streamlit pandas plotly requests
-   ```
+## Notes
 
-2. Set your API keys.
-
-3. Run the app:
-
-   ```
-   streamlit run app.py
-   ```
-
----
-
-## Summary
-
-This dashboard reframes economic monitoring from:
-
-> “What is the unemployment rate?”
-
-to:
-
-> “How does economic reality compare to public perception?”
-
-By standardizing and aligning both search behavior and official data, it creates a coherent framework for analyzing economic stress in real time.
+- Dashboard query files live in `dashboard/queries/`.
+- DuckDB access helper is in `dashboard/utils/db.py`.
+- The DAG is configured to push to `main`, matching the current repo workflow.
